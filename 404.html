@@ -6,10 +6,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Revisão 2027 · Pulse</title>
-    <script type="module" crossorigin src="/revisao-2027/assets/index-B7AgqaPC.js"></script>
+    
     <link rel="stylesheet" crossorigin href="/revisao-2027/assets/index-DM-orzjI.css">
   </head>
   <body>
+<style>
+#gate{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#1b1330;font-family:'General Sans',ui-sans-serif,system-ui,sans-serif;padding:16px}
+#gate form{width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px}
+#gate img{height:34px;width:auto;align-self:flex-start}
+#gate h1{color:#f4f1f8;font-size:20px;font-weight:600;margin:10px 0 0}
+#gate p{color:rgba(244,241,248,.6);font-size:13px;line-height:1.5;margin:0}
+#gate input[type=password]{height:44px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#f4f1f8;padding:0 14px;font-size:15px;outline:none}
+#gate input[type=password]:focus{border-color:#e5b230}
+#gate label.lb{display:flex;align-items:center;gap:8px;color:rgba(244,241,248,.7);font-size:12.5px}
+#gate button{height:44px;border:0;border-radius:10px;background:#e5b230;color:#1b1330;font-weight:600;font-size:14px;cursor:pointer}
+#gate button:disabled{opacity:.6;cursor:default}
+#gate .err{color:#ffb4a8;font-size:12.5px;min-height:16px}
+</style>
+<div id="gate"><form autocomplete="on">
+<img src="/revisao-2027/logo-revisao.png" alt="Revisão Ensino Jurídico">
+<h1>Planejamento 2027</h1>
+<p>Acesso restrito. Digite a senha para abrir o sistema.</p>
+<input type="password" name="senha" placeholder="Senha" autocomplete="current-password" autofocus required>
+<label class="lb"><input type="checkbox" name="lembrar" checked> Lembrar neste aparelho</label>
+<button type="submit">Entrar</button>
+<span class="err" role="alert"></span>
+</form></div>
+<script type="module">
+const ITER=310000, URL_BIN='/revisao-2027/assets/app.bin', K='rv27k';
+const gate=document.getElementById('gate'), f=gate.querySelector('form'), err=gate.querySelector('.err'), bt=gate.querySelector('button');
+let bin;
+async function dados(){ if(!bin){ const r=await fetch(URL_BIN,{cache:'no-cache'}); bin=new Uint8Array(await r.arrayBuffer()); } return bin; }
+async function abrir(key){
+  const b=await dados();
+  const js=await crypto.subtle.decrypt({name:'AES-GCM',iv:b.slice(16,28)},key,b.slice(28));
+  const url=URL.createObjectURL(new Blob([js],{type:'text/javascript'}));
+  gate.remove(); await import(url);
+}
+async function chave(senha){
+  const b=await dados();
+  const mat=await crypto.subtle.importKey('raw',new TextEncoder().encode(senha),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:b.slice(0,16),iterations:ITER,hash:'SHA-256'},mat,{name:'AES-GCM',length:256},true,['decrypt']);
+}
+const b64=(u)=>btoa(String.fromCharCode(...new Uint8Array(u))), unb64=(s)=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+(async()=>{ try{ const s=localStorage.getItem(K); if(s){ const k=await crypto.subtle.importKey('raw',unb64(s),'AES-GCM',false,['decrypt']); await abrir(k); } }catch(e){ try{localStorage.removeItem(K)}catch(_){} } })();
+f.addEventListener('submit',async(e)=>{
+  e.preventDefault(); err.textContent=''; bt.disabled=true; bt.textContent='Abrindo…';
+  try{
+    const k=await chave(f.senha.value);
+    if(f.lembrar.checked){ try{ localStorage.setItem(K,b64(await crypto.subtle.exportKey('raw',k))) }catch(_){} }
+    await abrir(k);
+  }catch(x){ err.textContent='Senha incorreta.'; bt.disabled=false; bt.textContent='Entrar'; f.senha.select(); }
+});
+</script>
     <div id="root"></div>
   </body>
 </html>
